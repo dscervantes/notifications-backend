@@ -31,9 +31,9 @@ public class CloudEventTransformerTest {
 
     @Test
     public void testTransformer() throws IOException {
-        InputStream policyCloudEvent = TestLifecycleManager.class.getClassLoader().getResourceAsStream("cloudevents/cloudevent.json");
+        InputStream cloudEventStream = TestLifecycleManager.class.getClassLoader().getResourceAsStream("cloudevents/cloudevent.json");
         NotificationsConsoleCloudEvent cloudEvent = new ConsoleCloudEventParser().fromJsonString(
-                IOUtils.toString(policyCloudEvent, UTF_8),
+                IOUtils.toString(cloudEventStream, UTF_8),
                 NotificationsConsoleCloudEvent.class
         );
 

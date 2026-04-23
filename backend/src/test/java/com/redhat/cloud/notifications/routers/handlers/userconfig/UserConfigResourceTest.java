@@ -22,7 +22,6 @@ import com.redhat.cloud.notifications.models.SubscriptionType;
 import com.redhat.cloud.notifications.models.Template;
 import com.redhat.cloud.notifications.routers.models.SettingsValueByEventTypeJsonForm;
 import com.redhat.cloud.notifications.routers.models.SettingsValuesByEventType;
-import com.redhat.cloud.notifications.routers.models.UserConfigPreferences;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -119,6 +118,16 @@ public class UserConfigResourceTest extends DbIsolatedTest {
                 Assertions.assertEquals("Policies", settingsValuesByEventType.bundles.get(bundleName).applications.get("policies").label, "unexpected label for the application");
 
                 return settingsValuesByEventType.bundles.get(bundleName).applications.get("policies");
+            }
+        }
+        return null;
+    }
+
+    private SettingsValueByEventTypeJsonForm.Application rhelAppForm(SettingsValueByEventTypeJsonForm settingsValuesByEventType, String appName) {
+        for (String bundleName : settingsValuesByEventType.bundles.keySet()) {
+            if (settingsValuesByEventType.bundles.get(bundleName).applications.containsKey(appName)) {
+                Assertions.assertEquals("Red Hat Enterprise Linux", settingsValuesByEventType.bundles.get(bundleName).label, "unexpected label for the bundle");
+                return settingsValuesByEventType.bundles.get(bundleName).applications.get(appName);
             }
         }
         return null;
@@ -300,9 +309,9 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         resourceHelpers.createDrawerTemplate(bundle, application, eventType);
 
         // Test legacy mode, without any severity available
-        updatePoliciesEventTypeAvailableSeverities(Set.of());
+        updateEventTypeAvailableSeverities("policy-triggered", Set.of());
 
-        updatePoliciesEventTypeVisibility(false);
+        updateEventTypeVisibility("policy-triggered", false);
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = given()
             .header(identityHeader)
             .queryParam("bundleName", bundle)
@@ -331,7 +340,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         // remove extra privilege
         when(backendConfig.isShowHiddenEventTypes(eq(orgId))).thenReturn(false);
 
-        updatePoliciesEventTypeVisibility(true);
+        updateEventTypeVisibility("policy-triggered", true);
         settingsValuesByEventType = given()
             .header(identityHeader)
             .queryParam("bundleName", bundle)
@@ -388,11 +397,11 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         updateAndCheckUserPreference(identityHeader, bundle, application, eventType, List.of(DAILY, INSTANT, DRAWER), List.of(DAILY, INSTANT, DRAWER), orgId);
 
         // Before this line, we're subscribed to everything. Now, we're locking the subscriptions.
-        lockOrUnlockSubscriptionToPoliciesEventType(true);
+        lockOrUnlockSubscriptionToEventType("policy-triggered", true);
         // Let's try to unsubscribe from everything. The subscriptions should remain the same.
         updateAndCheckUserPreference(identityHeader, bundle, application, eventType, emptyList(), List.of(DAILY, INSTANT, DRAWER), orgId);
         // We're now unlocking the subscriptions.
-        lockOrUnlockSubscriptionToPoliciesEventType(false);
+        lockOrUnlockSubscriptionToEventType("policy-triggered", false);
         // Unsubscribing from everything should work this time.
         updateAndCheckUserPreference(identityHeader, bundle, application, eventType, emptyList(), emptyList(), orgId);
 
@@ -519,14 +528,15 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         when(backendConfig.isUseCommonTemplateModuleForUserPrefApisToggle()).thenReturn(true);
 
         String bundle = "rhel";
-        String application = "policies";
-        String eventType = "policy-triggered";
+        String application = "advisor";
+        String eventType = "new-recommendation";
+        UUID advisorEventTypeId = resourceHelpers.createEventType(bundle, application, eventType);
 
         final Set<Severity> AVAILABLE_SEVERITY_SET = Set.of(Severity.MODERATE, Severity.CRITICAL, Severity.LOW, Severity.UNDEFINED);
-        updatePoliciesEventTypeAvailableSeverities(AVAILABLE_SEVERITY_SET);
+        updateEventTypeAvailableSeverities(eventType, AVAILABLE_SEVERITY_SET);
 
-        // Policy event should not be returned because it is not visible
-        updatePoliciesEventTypeVisibility(false);
+        // Event should not be returned because it is not visible
+        updateEventTypeVisibility(eventType, false);
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = given()
             .header(identityHeader)
             .queryParam("bundleName", bundle)
@@ -536,11 +546,11 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
 
-        SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNull(rhelPolicy, "RHEL policies found");
 
-        // Policy event should be returned because it is visible
-        updatePoliciesEventTypeVisibility(true);
+        // Event should be returned because it is visible
+        updateEventTypeVisibility(eventType, true);
         settingsValuesByEventType = given()
             .header(identityHeader)
             .queryParam("bundleName", bundle)
@@ -550,13 +560,13 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
 
-        rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNotNull(rhelPolicy, "RHEL policies not found");
         assertNull(rhelPolicy.eventTypes.get(0).fields.get(0).infoMessage);
 
-        Application applicationPolicies = new Application();
-        applicationPolicies.setName("policies");
-        when(applicationRepository.getApplicationsWithForcedEmail(any(), anyString())).thenReturn(List.of(applicationPolicies));
+        Application applicationAdvisor = new Application();
+        applicationAdvisor.setName("advisor");
+        when(applicationRepository.getApplicationsWithForcedEmail(any(), anyString())).thenReturn(List.of(applicationAdvisor));
 
         settingsValuesByEventType = given()
             .header(identityHeader)
@@ -565,7 +575,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .statusCode(200)
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
-        rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNotNull(rhelPolicy.eventTypes.get(0).fields.get(0).infoMessage);
 
         when(backendConfig.isInstantEmailsEnabled()).thenReturn(false);
@@ -578,7 +588,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         postPreferencesByEventType(identityHeader, settingsValues, 200);
 
         SettingsValueByEventTypeJsonForm settingsValue = getPreferencesByEventType(identityHeader);
-        rhelPolicy = rhelPolicyForm(settingsValue);
+        rhelPolicy = rhelAppForm(settingsValue, application);
         Map<SubscriptionType, Set<SettingsValueByEventTypeJsonForm.SeverityDetails>> policiesSubscriptionDetails = extractNotificationSubscriptionTypeDetails(rhelPolicy.eventTypes, bundle, application, eventType);
         assertEquals(Set.of(Severity.MODERATE, Severity.LOW), getSubscribedSeveritiesSet(policiesSubscriptionDetails.get(INSTANT)));
         assertEquals(Set.of(Severity.CRITICAL), getSubscribedSeveritiesSet(policiesSubscriptionDetails.get(DAILY)));
@@ -590,7 +600,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
 
         when(backendConfig.isInstantEmailsEnabled()).thenReturn(false);
         settingsValue = getPreferencesByEventType(identityHeader);
-        rhelPolicy = rhelPolicyForm(settingsValue);
+        rhelPolicy = rhelAppForm(settingsValue, application);
 
         policiesSubscriptionDetails = extractNotificationSubscriptionTypeDetails(rhelPolicy.eventTypes, bundle, application, eventType);
 
@@ -612,11 +622,11 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         updateAndCheckUserPreferenceWithSeverities(identityHeader, bundle, application, eventType, Map.of(INSTANT, Set.of(Severity.MODERATE, Severity.CRITICAL), DRAWER, Set.of(Severity.LOW, Severity.MODERATE), DAILY, Set.of(Severity.CRITICAL)), orgId);
 
         // Before this line, we're subscribed to everything. Now, we're locking the subscriptions.
-        lockOrUnlockSubscriptionToPoliciesEventType(true);
+        lockOrUnlockSubscriptionToEventType(eventType, true);
         // Let's try to unsubscribe from everything. The subscriptions should remain the same.
         updateAndCheckUserPreference(identityHeader, bundle, application, eventType, emptyList(), List.of(DAILY, INSTANT, DRAWER), orgId);
         // We're now unlocking the subscriptions.
-        lockOrUnlockSubscriptionToPoliciesEventType(false);
+        lockOrUnlockSubscriptionToEventType(eventType, false);
         // Unsubscribing from everything should work this time.
         updateAndCheckUserPreference(identityHeader, bundle, application, eventType, emptyList(), emptyList(), orgId);
 
@@ -673,7 +683,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .statusCode(200)
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
-        rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNotNull(rhelPolicy, "RHEL policies not found");
         Map<SubscriptionType, Set<SettingsValueByEventTypeJsonForm.SeverityDetails>> initialValues = extractNotificationSubscriptionTypeDetails(rhelPolicy.eventTypes, "not-found-bundle-2", "not-found-app-2", eventType);
         assertEquals(0, initialValues.size());
@@ -690,7 +700,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .statusCode(200)
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
-        rhelPolicy = rhelPolicyForm(settingsValueJsonForm);
+        rhelPolicy = rhelAppForm(settingsValueJsonForm, application);
         assertNotNull(rhelPolicy, "RHEL policies not found");
 
         Map<SubscriptionType, Set<SettingsValueByEventTypeJsonForm.SeverityDetails>> notificationPreferences = extractNotificationSubscriptionTypeDetails(rhelPolicy.eventTypes, bundle, application, eventType);
@@ -702,6 +712,11 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             assertEquals(2, notificationPreferences.size());
         }
         assertTrue(notificationPreferences.containsKey(INSTANT));
+
+        // delete advisor event type and app
+        applicationRepository.deleteEventTypeById(advisorEventTypeId);
+        UUID advisorAppId = applicationRepository.getApplication(bundle, application).getId();
+        applicationRepository.deleteApplication(advisorAppId);
     }
 
     private Set<Severity> getSubscribedSeveritiesSet(Set<SettingsValueByEventTypeJsonForm.SeverityDetails> severitySubscriptionSet) {
@@ -730,7 +745,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
 
         // verify get all preferences for all bundles and applications response
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = getPreferencesByEventType(identityHeader);
-        final SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        final SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNotNull(rhelPolicy, "RHEL policies not found");
         Map<SubscriptionType, Set<SettingsValueByEventTypeJsonForm.SeverityDetails>> initialValues = extractNotificationSubscriptionTypeDetails(rhelPolicy.eventTypes, bundle, application, eventType);
 
@@ -776,7 +791,7 @@ public class UserConfigResourceTest extends DbIsolatedTest {
         SettingsValuesByEventType settingsValues = createSettingsValue(bundle, application, eventType, subscriptionsToSet.contains(DAILY), subscriptionsToSet.contains(INSTANT), subscriptionsToSet.contains(DRAWER), orgId);
         postPreferencesByEventType(identityHeader, settingsValues, 200);
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = getPreferencesByEventType(identityHeader);
-        final SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelPolicyForm(settingsValuesByEventType);
+        final SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
         assertNotNull(rhelPolicy, "RHEL policies not found");
         Map<SubscriptionType, Boolean> initialValues = extractNotificationValues(rhelPolicy.eventTypes, bundle, application, eventType);
 
@@ -804,27 +819,30 @@ public class UserConfigResourceTest extends DbIsolatedTest {
     }
 
     @Transactional
-    void updatePoliciesEventTypeVisibility(boolean visible) {
-        entityManager.createQuery("UPDATE EventType SET visible = :visible where name='policy-triggered'")
+    void updateEventTypeVisibility(String eventTypeName, boolean visible) {
+        entityManager.createQuery("UPDATE EventType SET visible = :visible where name = :name")
             .setParameter("visible", visible)
+            .setParameter("name", eventTypeName)
             .executeUpdate();
     }
 
     @Transactional
-    void updatePoliciesEventTypeAvailableSeverities(Set<Severity> availableSeverities) {
-        entityManager.createQuery("UPDATE EventType SET availableSeverities = :availableSeverities where name='policy-triggered'")
+    void updateEventTypeAvailableSeverities(String eventTypeName, Set<Severity> availableSeverities) {
+        entityManager.createQuery("UPDATE EventType SET availableSeverities = :availableSeverities where name = :name")
             .setParameter("availableSeverities", availableSeverities)
+            .setParameter("name", eventTypeName)
             .executeUpdate();
     }
 
     @Transactional
-    void lockOrUnlockSubscriptionToPoliciesEventType(boolean locked) {
+    void lockOrUnlockSubscriptionToEventType(String eventTypeName, boolean locked) {
         String hql = "UPDATE EventType " +
                 "SET subscribedByDefault = :subscribedByDefault, subscriptionLocked = :subscriptionLocked " +
-                "WHERE name = 'policy-triggered'";
+                "WHERE name = :name";
         entityManager.createQuery(hql)
                 .setParameter("subscribedByDefault", locked)
                 .setParameter("subscriptionLocked", locked)
+                .setParameter("name", eventTypeName)
                 .executeUpdate();
     }
 
@@ -878,63 +896,14 @@ public class UserConfigResourceTest extends DbIsolatedTest {
     }
 
     @Test
-    void testSettingsUserPreferenceUsingDeprecatedApi() {
-        String accountId = "empty";
-        String orgId = "empty";
-        String username = "user";
-        String identityHeaderValue = TestHelpers.encodeRHIdentityInfo(accountId, orgId, username);
-        Header identityHeader = TestHelpers.createRHIdentityHeader(identityHeaderValue);
-        MockServerConfig.addMockRbacAccess(identityHeaderValue, MockServerConfig.RbacAccess.FULL_ACCESS);
-
-        String bundle = "rhel";
-        String application = "policies";
-        String eventType = "policy-triggered";
-
-        createInstantTemplate(bundle, application, eventType);
-        CrudTestHelpers.createAggregationTemplate(bundle, application, applicationRepository, adminRole);
-
-        // Daily and Instant to false
-        updateAndCheckUserPreferenceUsingDeprecatedApi(identityHeader, bundle, application, eventType, false, false, true, orgId);
-
-        // Daily to true
-        updateAndCheckUserPreferenceUsingDeprecatedApi(identityHeader, bundle, application, eventType, true, false, true, orgId);
-
-        // Instant to true
-        updateAndCheckUserPreferenceUsingDeprecatedApi(identityHeader, bundle, application, eventType, false, true, true, orgId);
-
-        // Both to true
-        updateAndCheckUserPreferenceUsingDeprecatedApi(identityHeader, bundle, application, eventType, true, true, true, orgId);
-
-        given()
-            .header(identityHeader)
-            .when().get(String.format(TestConstants.API_NOTIFICATIONS_V_1_0 + "/user-config/notification-preference/%s/%s", bundle, "another-app"))
-            .then()
-            .statusCode(403)
-            .contentType(JSON)
-            .extract().body();
-
-    }
-
-    @Test
     void testUserPreferencesFromServiceAccountAuth() {
         String userId = UUID.randomUUID().toString();
         final String identityHeaderValue = TestHelpers.encodeRHServiceAccountIdentityInfo("123456", "johndoe", userId);
         Header identityHeader = TestHelpers.createRHIdentityHeader(identityHeaderValue);
         MockServerConfig.addMockRbacAccess(identityHeaderValue, MockServerConfig.RbacAccess.FULL_ACCESS);
 
-        String response = given()
-            .header(identityHeader)
-            .when().get(String.format(TestConstants.API_NOTIFICATIONS_V_1_0 + "/user-config/notification-preference/%s/%s", "rhel", "policies"))
-            .then()
-            .statusCode(403)
-            .contentType(JSON)
-            .extract().body().asString();
-
-        assertTrue(response.contains("service account authentication"));
-
-        //String path = TestConstants.API_NOTIFICATIONS_V_1_0 + "/user-config/notification-event-type-preference";
         SettingsValuesByEventType settingsValues = createSettingsValue("not-found-bundle-2", "not-found-app-2", "eventType", true, true, true, DEFAULT_ORG_ID);
-        response = given()
+        String response = given()
             .header(identityHeader)
             .when()
             .contentType(JSON)
@@ -962,24 +931,6 @@ public class UserConfigResourceTest extends DbIsolatedTest {
             .contentType(JSON)
             .extract().body().asString();
         assertTrue(response.contains("service account authentication"));
-    }
-
-    private void updateAndCheckUserPreferenceUsingDeprecatedApi(Header identityHeader, String bundle, String application, String eventType, boolean daily, boolean instant, boolean drawer, String orgId) {
-        SettingsValuesByEventType settingsValues = createSettingsValue(bundle, application, eventType, daily, instant, drawer, orgId);
-        postPreferencesByEventType(identityHeader, settingsValues, 200);
-
-        final UserConfigPreferences preferences = given()
-            .header(identityHeader)
-            .when().get(String.format(TestConstants.API_NOTIFICATIONS_V_1_0 + "/user-config/notification-preference/%s/%s", bundle, application))
-            .then()
-            .statusCode(200)
-            .contentType(JSON)
-            .extract().body().as(UserConfigPreferences.class);
-
-        assertNotNull(preferences);
-
-        assertEquals(daily, preferences.getDailyEmail());
-        assertEquals(instant, preferences.getInstantEmail());
     }
 
     @Test
