@@ -100,7 +100,11 @@
                             <goal>jandex</goal>
                         </goals>
                     </execution>
-                    <!-- Index test classes so @Mock beans can be discovered from test-jar -->
+                    <!-- Index test classes so @Mock beans can be discovered from test-jar.
+                         indexDir must point to testOutputDirectory so the index lands in
+                         target/test-classes/META-INF/ (included by maven-jar-plugin test-jar).
+                         Without this, io.smallrye defaults to target/classes/META-INF/ and
+                         the test-jar ships without a Jandex index. -->
                     <execution>
                         <id>make-test-index</id>
                         <goals>
@@ -108,6 +112,7 @@
                         </goals>
                         <phase>process-test-classes</phase>
                         <configuration>
+                            <indexDir>${project.build.testOutputDirectory}/META-INF</indexDir>
                             <fileSets>
                                 <fileSet>
                                     <directory>${project.build.testOutputDirectory}</directory>
