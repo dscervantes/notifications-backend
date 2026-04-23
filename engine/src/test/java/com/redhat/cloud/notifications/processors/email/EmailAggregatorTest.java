@@ -15,6 +15,11 @@ import com.redhat.cloud.notifications.models.SystemSubscriptionProperties;
 import com.redhat.cloud.notifications.recipients.User;
 import com.redhat.cloud.notifications.recipients.recipientsresolver.RecipientsResolverService;
 import com.redhat.cloud.notifications.recipients.recipientsresolver.pojo.RecipientsQuery;
+import com.redhat.cloud.notifications.ingress.Action;
+import com.redhat.cloud.notifications.ingress.Context;
+import com.redhat.cloud.notifications.ingress.Event;
+import com.redhat.cloud.notifications.ingress.Metadata;
+import com.redhat.cloud.notifications.ingress.Payload;
 import com.redhat.cloud.notifications.transformers.BaseTransformer;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheManager;
@@ -32,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +84,7 @@ class EmailAggregatorTest {
     Application application;
     EventType eventType1;
     EventType eventType2;
-    final EventAggregationCriterion AGGREGATION_KEY = new EventAggregationCriterion("org-1", UUID.randomUUID(), UUID.randomUUID(), "rhel", "policies");
+    final EventAggregationCriterion AGGREGATION_KEY = new EventAggregationCriterion("org-1", UUID.randomUUID(), UUID.randomUUID(), "rhel", "advisor");
 
     @BeforeEach
     void beforeEach() {
@@ -98,8 +102,8 @@ class EmailAggregatorTest {
 
     private void initDataForSubscriptionTests() {
         // init test environment
-        application = resourceHelpers.findOrCreateApplication("rhel", "policies");
-        eventType1 = resourceHelpers.findOrCreateEventType(application.getId(), TestHelpers.eventType);
+        application = resourceHelpers.findOrCreateApplication("rhel", "advisor");
+        eventType1 = resourceHelpers.findOrCreateEventType(application.getId(), "new-recommendation");
         eventType2 = resourceHelpers.findOrCreateEventType(application.getId(), "not-used");
         resourceHelpers.findOrCreateEventType(application.getId(), "event-type-2");
         resourceHelpers.createEventTypeEmailSubscription("org-1", "user-2", eventType2, DAILY);
@@ -149,7 +153,7 @@ class EmailAggregatorTest {
         assertTrue(result.keySet().stream().findFirst().isPresent());
         User user = result.keySet().stream().findFirst().get();
         assertEquals("user-2", user.getEmail());
-        assertEquals(4, ((LinkedHashMap<?, ?>) result.get(user).get("policies")).size());
+        assertEquals(4, getNewRecommendationsSize(result.get(user)));
         verify(recipientsResolverService, times(4)).getRecipients(any(RecipientsQuery.class));
     }
 
@@ -179,7 +183,7 @@ class EmailAggregatorTest {
         User user = result.keySet().stream().findFirst().get();
         assertEquals("user-2", user.getEmail());
         // we should have only one result here because only one event have the "MODERATE" severity
-        assertEquals(1, ((LinkedHashMap<?, ?>) result.get(user).get("policies")).size());
+        assertEquals(1, getNewRecommendationsSize(result.get(user)));
         verify(recipientsResolverService, times(4)).getRecipients(any(RecipientsQuery.class));
     }
 
@@ -206,7 +210,7 @@ class EmailAggregatorTest {
         User user = result.keySet().stream().findFirst().get();
         assertEquals("user-2", user.getEmail());
         // we should have 0 result since user unsubscribed from all severities
-        assertEquals(0, ((LinkedHashMap<?, ?>) result.get(user).get("policies")).size());
+        assertEquals(0, getNewRecommendationsSize(result.get(user)));
         verify(recipientsResolverService, times(4)).getRecipients(any(RecipientsQuery.class));
 
         // disable the severity filtering
@@ -218,7 +222,7 @@ class EmailAggregatorTest {
         assertTrue(result.keySet().stream().findFirst().isPresent());
         user = result.keySet().stream().findFirst().get();
         assertEquals("user-2", user.getEmail());
-        assertEquals(8, ((LinkedHashMap<?, ?>) result.get(user).get("policies")).size());
+        assertEquals(5, getNewRecommendationsSize(result.get(user)));
     }
 
     private Map<User, Map<String, Object>> aggregate() {
@@ -226,36 +230,61 @@ class EmailAggregatorTest {
 
         for (int i = 0; i < 4; i++) {
             Severity severity = Severity.values()[i];
-            JsonObject payload = TestHelpers.createEmailAggregation("org-1", "rhel", "policies", RandomStringUtils.secure().next(10),  RandomStringUtils.secure().next(10), severity, eventType1.getId()).getPayload();
-            // the base transformer adds a "source" element which should not be present in an original event payload
-            payload.remove(BaseTransformer.SOURCE);
-
-            // some tenants send their events/payload and events/context as string instead of Json
-            // at least one test event must cover this case
-            if (i == 0) {
-                String contextAsString = payload.getString("context");
-
-                JsonObject event = payload.getJsonArray("events").getJsonObject(0);
-                String payloadAsString = event.getString("payload");
-                JsonObject jso2 = event.copy()
-                    .put("payload", payloadAsString);
-
-                payload.getJsonArray("events").clear();
-                payload.getJsonArray("events").add(jso2);
-                payload.put("context", contextAsString);
-            }
-            resourceHelpers.addEventEmailAggregation("org-1", "rhel", "policies", payload, false, severity);
+            JsonObject payload = createAdvisorPayload("org-1", "rule-" + RandomStringUtils.secure().next(10));
+            resourceHelpers.addEventEmailAggregation("org-1", "rhel", "advisor", payload, false, severity);
         }
-        JsonObject payload = TestHelpers.createEmailAggregation("org-2", "rhel", "policies",  RandomStringUtils.secure().next(10),  RandomStringUtils.secure().next(10)).getPayload();
-        // the base transformer adds a "source" element which should not be present in an original event payload
-        payload.remove(BaseTransformer.SOURCE);
-        resourceHelpers.addEventEmailAggregation("org-2", "rhel", "policies", payload, false);
+        JsonObject payload = createAdvisorPayload("org-2", "rule-" + RandomStringUtils.secure().next(10));
+        resourceHelpers.addEventEmailAggregation("org-2", "rhel", "advisor", payload, false);
 
-        Application policiesApp = resourceHelpers.findApp("rhel", "policies");
-        EventAggregationCriterion aggregationKey = new EventAggregationCriterion(AGGREGATION_KEY.getOrgId(), policiesApp.getBundleId(), policiesApp.getId(), AGGREGATION_KEY.getBundle(), AGGREGATION_KEY.getApplication());
+        Application advisorApp = resourceHelpers.findApp("rhel", "advisor");
+        EventAggregationCriterion aggregationKey = new EventAggregationCriterion(AGGREGATION_KEY.getOrgId(), advisorApp.getBundleId(), advisorApp.getId(), AGGREGATION_KEY.getBundle(), AGGREGATION_KEY.getApplication());
 
         result.putAll(emailAggregator.getAggregated(application.getId(), aggregationKey, DAILY, LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1), LocalDateTime.now(ZoneOffset.UTC).plusMinutes(1)));
         return result;
+    }
+
+    private static JsonObject createAdvisorPayload(String orgId, String ruleId) {
+        Action action = new Action();
+        action.setBundle("rhel");
+        action.setApplication("advisor");
+        action.setTimestamp(LocalDateTime.now());
+        action.setEventType("new-recommendation");
+        action.setOrgId(orgId);
+
+        action.setContext(
+                new Context.ContextBuilder()
+                        .withAdditionalProperty("inventory_id", RandomStringUtils.secure().next(10))
+                        .withAdditionalProperty("hostname", "test-host")
+                        .withAdditionalProperty("display_name", "Test machine")
+                        .withAdditionalProperty("rhel_version", "8.3")
+                        .withAdditionalProperty("host_url", "http://test-host-url")
+                        .build()
+        );
+        action.setEvents(List.of(
+                new Event.EventBuilder()
+                        .withMetadata(new Metadata.MetadataBuilder().build())
+                        .withPayload(
+                                new Payload.PayloadBuilder()
+                                        .withAdditionalProperty("rule_id", ruleId)
+                                        .withAdditionalProperty("rule_description", "test rule description")
+                                        .withAdditionalProperty("total_risk", "2")
+                                        .withAdditionalProperty("has_incident", "false")
+                                        .withAdditionalProperty("rule_url", "http://test-rule/" + ruleId)
+                                        .build()
+                        )
+                        .build()
+        ));
+
+        JsonObject payload = TestHelpers.wrapActionToJsonObject(action);
+        payload.remove(BaseTransformer.SOURCE);
+        return payload;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static int getNewRecommendationsSize(Map<String, Object> userData) {
+        Map<String, Object> advisorData = (Map<String, Object>) userData.get("advisor");
+        Object newRecs = advisorData.get("new_recommendations");
+        return newRecs == null ? 0 : ((Map<?, ?>) newRecs).size();
     }
 
     public void clearCachedData(String cacheName) {

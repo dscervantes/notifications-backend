@@ -616,9 +616,9 @@ public class TestHelpers {
     }
 
     public static NotificationsConsoleCloudEvent createConsoleCloudEvent() throws IOException {
-        InputStream policyCloudEvent = TestLifecycleManager.class.getClassLoader().getResourceAsStream("cloudevents/cloudevent.json");
+        InputStream cloudEventStream = TestLifecycleManager.class.getClassLoader().getResourceAsStream("cloudevents/cloudevent.json");
         return new ConsoleCloudEventParser().fromJsonString(
-                IOUtils.toString(policyCloudEvent, UTF_8),
+                IOUtils.toString(cloudEventStream, UTF_8),
                 NotificationsConsoleCloudEvent.class
         );
     }
