@@ -231,10 +231,10 @@ class EmailAggregatorTest {
         for (int i = 0; i < 4; i++) {
             Severity severity = Severity.values()[i];
             JsonObject payload = createAdvisorPayload("org-1", "rule-" + RandomStringUtils.secure().next(10));
-            resourceHelpers.addEventEmailAggregation("org-1", "rhel", "advisor", payload, false, severity);
+            resourceHelpers.addEventEmailAggregation("org-1", "rhel", "advisor", payload, false, severity, "new-recommendation");
         }
         JsonObject payload = createAdvisorPayload("org-2", "rule-" + RandomStringUtils.secure().next(10));
-        resourceHelpers.addEventEmailAggregation("org-2", "rhel", "advisor", payload, false);
+        resourceHelpers.addEventEmailAggregation("org-2", "rhel", "advisor", payload, false, null, "new-recommendation");
 
         Application advisorApp = resourceHelpers.findApp("rhel", "advisor");
         EventAggregationCriterion aggregationKey = new EventAggregationCriterion(AGGREGATION_KEY.getOrgId(), advisorApp.getBundleId(), advisorApp.getId(), AGGREGATION_KEY.getBundle(), AGGREGATION_KEY.getApplication());

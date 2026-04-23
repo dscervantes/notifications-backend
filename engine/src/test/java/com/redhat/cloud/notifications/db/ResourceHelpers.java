@@ -296,8 +296,12 @@ public class ResourceHelpers {
     }
 
     public com.redhat.cloud.notifications.models.Event addEventEmailAggregation(String orgId, String bundleName, String applicationName, JsonObject payload, boolean addUserSubscription, Severity severity) {
+        return addEventEmailAggregation(orgId, bundleName, applicationName, payload, addUserSubscription, severity, TestHelpers.eventType);
+    }
+
+    public com.redhat.cloud.notifications.models.Event addEventEmailAggregation(String orgId, String bundleName, String applicationName, JsonObject payload, boolean addUserSubscription, Severity severity, String eventTypeName) {
         Application application = findOrCreateApplication(bundleName, applicationName);
-        EventType eventType = findOrCreateEventType(application.getId(), TestHelpers.eventType);
+        EventType eventType = findOrCreateEventType(application.getId(), eventTypeName);
         if (addUserSubscription) {
             findOrCreateEventTypeEmailSubscription(orgId, "obiwan", eventType, SubscriptionType.DAILY);
         }
