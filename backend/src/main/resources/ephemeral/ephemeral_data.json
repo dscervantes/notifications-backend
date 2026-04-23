@@ -148,16 +148,6 @@
               "display_name": "New advisory"
             }
           ]
-        },
-        {
-          "name": "policies",
-          "display_name": "Policies",
-          "event_types": [
-            {
-              "name": "policy-triggered",
-              "display_name": "Policy triggered"
-            }
-          ]
         }
       ]
     },

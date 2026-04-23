@@ -11,7 +11,6 @@ import com.redhat.cloud.notifications.connector.email.model.settings.RecipientSe
 import com.redhat.cloud.notifications.connector.email.model.settings.User;
 import com.redhat.cloud.notifications.connector.email.processors.bop.BOPManager;
 import com.redhat.cloud.notifications.qute.templates.TemplateService;
-import email.TestPoliciesTemplate;
 import helpers.TestHelpers;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -434,10 +433,7 @@ class EmailRouteBuilderTest extends CamelQuarkusTestSupport {
                 "patch",
                 objectMapper.readValue(JSON_PATCH_DEFAULT_AGGREGATION_CONTEXT, typeRef)
             ));
-            applicationAggregatedDataList.add(new ApplicationAggregatedData(
-                "policies",
-                TestPoliciesTemplate.buildPoliciesAggregatedPayload()
-            ));
+
             applicationAggregatedDataList.add(new ApplicationAggregatedData(
                 "resource-optimization",
                 objectMapper.readValue(JSON_RESOURCE_OPTIMIZATION_DEFAULT_AGGREGATION_CONTEXT, typeRef)

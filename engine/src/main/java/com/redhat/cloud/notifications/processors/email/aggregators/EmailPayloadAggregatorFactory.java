@@ -10,7 +10,7 @@ public class EmailPayloadAggregatorFactory {
     private static final String SUBSCRIPTION_SERVICES = "subscription-services";
     private static final String APPLICATION_SERVICES = "application-services";
     private static final String ADVISOR = "advisor";
-    private static final String POLICIES = "policies";
+
     private static final String COMPLIANCE = "compliance";
     private static final String ANSIBLE = "ansible";
     private static final String PATCH = "patch";
@@ -66,8 +66,7 @@ public class EmailPayloadAggregatorFactory {
                         return new InventoryEmailAggregator();
                     case PATCH:
                         return new PatchEmailPayloadAggregator();
-                    case POLICIES:
-                        return new PoliciesEmailPayloadAggregator();
+
                     case RESOURCE_OPTIMIZATION:
                         return new ResourceOptimizationPayloadAggregator();
                     case VULNERABILITY:

@@ -40,15 +40,15 @@ public class CloudEventTransformerTest {
         Action action = transformer.toAction(
                 new EventWrapperCloudEvent(cloudEvent),
                 "rhel",
-                "policies",
-                "policy-triggered"
+                "advisor",
+                "new-recommendation"
         );
 
         assertNotNull(action);
 
         assertEquals("rhel", action.getBundle());
-        assertEquals("policies", action.getApplication());
-        assertEquals("policy-triggered", action.getEventType());
+        assertEquals("advisor", action.getApplication());
+        assertEquals("new-recommendation", action.getEventType());
 
         assertEquals("11789772", action.getOrgId());
         assertEquals("6089719", action.getAccountId());

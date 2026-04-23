@@ -32,8 +32,6 @@ public class Rhel {
     public static final String ROADMAP_APP_NAME = "roadmap";
     public static final String ROADMAP_FOLDER_NAME = "Roadmap/";
 
-    public static final String POLICIES_APP_NAME = "policies";
-    public static final String POLICY_FOLDER_NAME = "Policies/";
 
     public static final String RESOURCE_OPTIMIZATION_APP_NAME = "resource-optimization";
     public static final String RESOURCE_OPTIMIZATION_FOLDER_NAME = "ResourceOptimization/";
@@ -64,7 +62,6 @@ public class Rhel {
 
     public static final String ROADMAP_REPORT = "roadmap-monthly-report";
 
-    public static final String POLICIES_POLICY_TRIGGERED = "policy-triggered";
 
     public static final String TASK_EXECUTED_TASK_COMPLETED = "executed-task-completed";
     public static final String TASK_JOB_FAILED = "job-failed";
@@ -115,11 +112,6 @@ public class Rhel {
         // Roadmap
         entry(new TemplateDefinition(EMAIL_BODY, BUNDLE_NAME, ROADMAP_APP_NAME, ROADMAP_REPORT), ROADMAP_FOLDER_NAME + "roadmapInstantEmailBody.html"),
 
-        // Policies
-        entry(new TemplateDefinition(DRAWER, BUNDLE_NAME, POLICIES_APP_NAME, POLICIES_POLICY_TRIGGERED), POLICY_FOLDER_NAME + "policyTriggeredBody.md"),
-        entry(new TemplateDefinition(EMAIL_BODY, BUNDLE_NAME, POLICIES_APP_NAME, POLICIES_POLICY_TRIGGERED), POLICY_FOLDER_NAME + "instantEmailBody.html"),
-
-        entry(new TemplateDefinition(EMAIL_DAILY_DIGEST_BODY, BUNDLE_NAME, POLICIES_APP_NAME, null), POLICY_FOLDER_NAME + "dailyEmailBody.html"),
 
         // Resource optimization
         entry(new TemplateDefinition(EMAIL_DAILY_DIGEST_BODY, BUNDLE_NAME, RESOURCE_OPTIMIZATION_APP_NAME, null), RESOURCE_OPTIMIZATION_FOLDER_NAME + "dailyEmailBody.html"),

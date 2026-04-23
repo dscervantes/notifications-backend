@@ -10,8 +10,8 @@ fi
 
 
 BUNDLE='rhel'
-APP='policies'
-EVENT_TYPE='policy-triggered'
+APP='advisor'
+EVENT_TYPE='new-recommendation'
 TIMESTAMP=$(date --utc +%FT%TZ)
 
 read -r -d '' EVENTS <<JSONDOC
@@ -19,10 +19,11 @@ read -r -d '' EVENTS <<JSONDOC
   {
     "metadata": {},
     "payload": {
-      "policy_id": "00001",
-      "policy_name": "My policy",
-      "policy_description": "My policy description",
-      "policy_condition": "arch = \"x86_64\""
+      "rule_id": "rule-id-001",
+      "rule_description": "Sample recommendation",
+      "total_risk": "2",
+      "publish_date": "$(date --utc +%FT%TZ)",
+      "rule_url": "http://example.com/rule-001"
     }
   }
 ]
@@ -30,9 +31,11 @@ JSONDOC
 
 read -r -d ''  CONTEXT <<JSONDOC
 {
-  "system_check_in": "$(date --utc +%FT%TZ)",
+  "inventory_id": "host-01",
+  "hostname": "my-host",
   "display_name": "My system",
-  "tags": {}
+  "rhel_version": "8.3",
+  "host_url": "http://example.com/host-01"
 }
 JSONDOC
 

@@ -39,7 +39,7 @@ The system supports three authentication paths, selected at runtime:
 - The `workspacePermissions` array is checked when Kessel is active (calls Kessel at request time).
 - Both fields must always be specified. If `workspacePermissions` is empty when Kessel is active, the interceptor throws `IllegalStateException`.
 - The annotated method **must** have a `SecurityContext` parameter; the interceptor throws `IllegalStateException` otherwise.
-- **Exception**: Some endpoints marked with `@Tag(name = OApiFilter.PRIVATE)` (e.g., `UserConfigResource`, `DrawerResource`, `StatusResource`, `UserPreferencesForPolicy`) extract orgId/username from SecurityContext but do not use `@Authorization`. These endpoints rely on the underlying authentication mechanism without explicit authorization checks.
+- **Exception**: Some endpoints marked with `@Tag(name = OApiFilter.PRIVATE)` (e.g., `UserConfigResource`, `DrawerResource`, `StatusResource`) extract orgId/username from SecurityContext but do not use `@Authorization`. These endpoints rely on the underlying authentication mechanism without explicit authorization checks.
 
 ### 2.2 RBAC Role Constants
 Use only the predefined constants from `ConsoleIdentityProvider`:

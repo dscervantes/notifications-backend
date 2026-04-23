@@ -25,8 +25,8 @@ const SkeletonIfLoading: React.FunctionComponent<SkeletonIfLoading> = props => (
 
 const defaultPayload = JSON.stringify({
     bundle: 'rhel',
-    application: 'policies',
-    event_type: 'policy-triggered',
+    application: 'advisor',
+    event_type: 'new-recommendation',
     timestamp: '2021-08-05T16:21:14.243',
     org_id: '5758117',
 
