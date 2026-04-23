@@ -6,9 +6,11 @@ import com.redhat.cloud.notifications.TestHelpers;
 import com.redhat.cloud.notifications.db.ResourceHelpers;
 import com.redhat.cloud.notifications.db.repositories.EmailAggregationRepository;
 import com.redhat.cloud.notifications.ingress.Action;
+import com.redhat.cloud.notifications.ingress.Context;
 import com.redhat.cloud.notifications.ingress.Metadata;
 import com.redhat.cloud.notifications.ingress.Parser;
 import com.redhat.cloud.notifications.ingress.Payload;
+import com.redhat.cloud.notifications.ingress.Recipient;
 import com.redhat.cloud.notifications.models.AggregationCommand;
 import com.redhat.cloud.notifications.models.Application;
 import com.redhat.cloud.notifications.models.EmailAggregation;
@@ -117,13 +119,13 @@ class EmailAggregationProcessorTest {
         resourceHelpers.deleteBundle("rhel");
         resourceHelpers.createBundle("rhel", "Red Hat Enterprise Linux");
         initData("patch", "new-advisory");
-        initData("policies", "policy-triggered");
+        initData("advisor", "new-recommendation");
     }
 
     @AfterEach
     void afterEach() {
         resourceHelpers.deleteApp("rhel", "patch");
-        resourceHelpers.deleteApp("rhel", "policies");
+        resourceHelpers.deleteApp("rhel", "advisor");
         resourceHelpers.clearEvents();
     }
 
@@ -139,12 +141,12 @@ class EmailAggregationProcessorTest {
         final String ORG_ID_2 = RandomStringUtils.secure().nextAlphanumeric(6);
 
         // Because this test will use a real Payload Aggregator
-        EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(ORG_ID_1, "rhel", "policies");
+        EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(ORG_ID_1, "rhel", "advisor");
         EventAggregationCriterion aggregationKey2 = buildEmailAggregationKey(ORG_ID_2, "bundle-2", "app-2");
 
         List<EmailAggregation> eventToAggregate = List.of(
-            TestHelpers.createEmailAggregation(ORG_ID_1, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10)),
-            TestHelpers.createEmailAggregation(ORG_ID_1, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10), "user3")
+            createAdvisorEmailAggregation(ORG_ID_1, null),
+            createAdvisorEmailAggregation(ORG_ID_1, "user3")
         );
 
         createAggregationsAndSendAggregationKeysToIngress(eventToAggregate, aggregationKey1, aggregationKey2);
@@ -182,12 +184,12 @@ class EmailAggregationProcessorTest {
             initData("patch", "new-advisory");
 
             // Because this test will use a real Payload Aggregator
-            EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "policies");
+            EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "advisor");
             EventAggregationCriterion aggregationKey2 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "patch");
 
             List<EmailAggregation> eventToAggregate = List.of(
-                TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10)),
-                TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10), "user3"),
+                createAdvisorEmailAggregation(DEFAULT_ORG_ID, null),
+                createAdvisorEmailAggregation(DEFAULT_ORG_ID, "user3"),
                 PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_1", "test synopsis", "security", "host-01"),
                 PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_2", "test synopsis", "enhancement", "host-01"),
                 PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_3", "test synopsis", "enhancement", "host-02")
@@ -219,17 +221,17 @@ class EmailAggregationProcessorTest {
                 Map<String, Object> map = capturedEmailRequest.eventData();
                 assertEquals("rhel", map.get("bundle_name"));
                 List<Map<String, Object>> listApplications = (ArrayList) map.get("application_aggregated_data_list");
-                assertTrue(listApplications.stream().anyMatch(application -> "policies".equals(application.get("app_name"))));
+                assertTrue(listApplications.stream().anyMatch(application -> "advisor".equals(application.get("app_name"))));
             });
 
-            long nbEmailWithPoliciesAndPatchApps = capturedPayloads.stream().filter(capturedPayload -> {
+            long nbEmailWithAdvisorAndPatchApps = capturedPayloads.stream().filter(capturedPayload -> {
                 EmailNotification capturedEmailRequest = capturedPayload.mapTo(EmailNotification.class);
                 Map<String, Object> map = capturedEmailRequest.eventData();
                 List<Map<String, Object>> listApplications = (ArrayList) map.get("application_aggregated_data_list");
-                return listApplications.stream().anyMatch(application -> "policies".equals(application.get("app_name")))
+                return listApplications.stream().anyMatch(application -> "advisor".equals(application.get("app_name")))
                     && listApplications.stream().anyMatch(application -> "patch".equals(application.get("app_name")));
             }).count();
-            assertEquals(1, nbEmailWithPoliciesAndPatchApps);
+            assertEquals(1, nbEmailWithAdvisorAndPatchApps);
 
             micrometerAssertionHelper.clearSavedValues();
         } finally {
@@ -243,19 +245,19 @@ class EmailAggregationProcessorTest {
             initData("patch", "new-advisory");
 
             // Because this test will use a real Payload Aggregator
-            EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "policies");
+            EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "advisor");
             EventAggregationCriterion aggregationKey2 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "patch");
 
             List<EmailAggregation> eventToAggregate = new ArrayList<>();
-            eventToAggregate.add(TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10)));
-            eventToAggregate.add(TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10), "user3"));
+            eventToAggregate.add(createAdvisorEmailAggregation(DEFAULT_ORG_ID, null));
+            eventToAggregate.add(createAdvisorEmailAggregation(DEFAULT_ORG_ID, "user3"));
             eventToAggregate.add(PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_1", "test synopsis", "security", "host-01"));
             eventToAggregate.add(PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_2", "test synopsis", "enhancement", "host-01"));
             eventToAggregate.add(PatchTestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "patch", "advisory_3", "test synopsis", "enhancement", "host-02"));
 
-            EmailAggregation errorOnPoliciesPayload = TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10));
-            errorOnPoliciesPayload.getPayload().getMap().put("events", "Wrong format");
-            eventToAggregate.add(errorOnPoliciesPayload);
+            EmailAggregation errorOnAdvisorPayload = createAdvisorEmailAggregation(DEFAULT_ORG_ID, null);
+            errorOnAdvisorPayload.getPayload().getMap().put("events", "Wrong format");
+            eventToAggregate.add(errorOnAdvisorPayload);
 
             createAggregationsAndSendAggregationKeysToIngress(eventToAggregate, aggregationKey1, aggregationKey2);
 
@@ -270,15 +272,15 @@ class EmailAggregationProcessorTest {
                 })
             );
 
-            long nbEmailWithPoliciesAndPatchApps = capturedPayloads.stream().filter(capturedPayload -> {
+            long nbEmailWithAdvisorAndPatchApps = capturedPayloads.stream().filter(capturedPayload -> {
                 EmailNotification capturedEmailRequest = capturedPayload.mapTo(EmailNotification.class);
 
                 Map<String, Object> map = capturedEmailRequest.eventData();
                 List<Map<String, Object>> listApplications = (ArrayList) map.get("application_aggregated_data_list");
-                return listApplications.stream().noneMatch(application -> "policies".equals(application.get("app_name")))
+                return listApplications.stream().noneMatch(application -> "advisor".equals(application.get("app_name")))
                     && listApplications.stream().anyMatch(application -> "patch".equals(application.get("app_name")));
             }).count();
-            assertEquals(1, nbEmailWithPoliciesAndPatchApps);
+            assertEquals(1, nbEmailWithAdvisorAndPatchApps);
 
             micrometerAssertionHelper.clearSavedValues();
         } finally {
@@ -290,14 +292,14 @@ class EmailAggregationProcessorTest {
     void shouldNotSendAggEmailBecauseNoAppSucceedToRender() {
 
         // Because this test will use a real Payload Aggregator
-        EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "policies");
+        EventAggregationCriterion aggregationKey1 = buildEmailAggregationKey(DEFAULT_ORG_ID, "rhel", "advisor");
 
         List<EmailAggregation> eventToAggregate = new ArrayList<>();
-        eventToAggregate.add(TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10)));
+        eventToAggregate.add(createAdvisorEmailAggregation(DEFAULT_ORG_ID, null));
 
-        EmailAggregation errorOnPoliciesPayload = TestHelpers.createEmailAggregation(DEFAULT_ORG_ID, "rhel", "policies", RandomStringUtils.random(10), RandomStringUtils.random(10));
-        errorOnPoliciesPayload.getPayload().getMap().put("events", "Wrong format");
-        eventToAggregate.add(errorOnPoliciesPayload);
+        EmailAggregation errorOnAdvisorPayload = createAdvisorEmailAggregation(DEFAULT_ORG_ID, null);
+        errorOnAdvisorPayload.getPayload().getMap().put("events", "Wrong format");
+        eventToAggregate.add(errorOnAdvisorPayload);
 
         createAggregationsAndSendAggregationKeysToIngress(eventToAggregate, aggregationKey1);
 
@@ -325,6 +327,53 @@ class EmailAggregationProcessorTest {
         } finally {
             resourceHelpers.deleteApp("rhel", "patch");
         }
+    }
+
+    private static EmailAggregation createAdvisorEmailAggregation(String orgId, String extraRecipient) {
+        EmailAggregation aggregation = new EmailAggregation();
+        aggregation.setBundleName("rhel");
+        aggregation.setApplicationName("advisor");
+        aggregation.setOrgId(orgId);
+
+        Action action = new Action();
+        action.setBundle("rhel");
+        action.setApplication("advisor");
+        action.setTimestamp(LocalDateTime.now());
+        action.setEventType("new-recommendation");
+        action.setOrgId(orgId);
+
+        action.setContext(
+                new Context.ContextBuilder()
+                        .withAdditionalProperty("inventory_id", RandomStringUtils.secure().next(10))
+                        .withAdditionalProperty("hostname", "test-host")
+                        .withAdditionalProperty("display_name", "Test machine")
+                        .withAdditionalProperty("rhel_version", "8.3")
+                        .withAdditionalProperty("host_url", "http://test-host-url")
+                        .build()
+        );
+        action.setEvents(List.of(
+                new com.redhat.cloud.notifications.ingress.Event.EventBuilder()
+                        .withMetadata(new Metadata.MetadataBuilder().build())
+                        .withPayload(
+                                new Payload.PayloadBuilder()
+                                        .withAdditionalProperty("rule_id", "rule-" + RandomStringUtils.secure().next(10))
+                                        .withAdditionalProperty("rule_description", "test rule description")
+                                        .withAdditionalProperty("total_risk", "2")
+                                        .withAdditionalProperty("has_incident", "false")
+                                        .withAdditionalProperty("rule_url", "http://test-rule/rule-1")
+                                        .build()
+                        )
+                        .build()
+        ));
+
+        JsonObject payload = TestHelpers.wrapActionToJsonObject(action);
+        if (extraRecipient != null) {
+            Recipient recipient = new Recipient();
+            recipient.setUsers(List.of(extraRecipient));
+            payload.put("recipients", List.of(recipient));
+        }
+        aggregation.setPayload(payload);
+        return aggregation;
     }
 
     private void mockUsers(User user1, User user2, User user3) {
