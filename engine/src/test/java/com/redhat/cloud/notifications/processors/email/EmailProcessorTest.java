@@ -97,8 +97,8 @@ public class EmailProcessorTest {
         event.setEventWrapper(eventWrapper);
         event.setEventType(eventType);
         event.setBundleDisplayName("Red Hat Enterprise Linux");
-        event.setApplicationDisplayName("Policies");
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setApplicationDisplayName("Advisor");
+        event.setEventTypeDisplayName("Test event type");
         event.setOrgId("email-processor-test-event-type-org-id");
 
         return event;

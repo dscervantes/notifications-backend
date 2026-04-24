@@ -46,7 +46,7 @@ class InstantLabelMappingTest {
 
     @Test
     void nonLifecycleApplicationReturnsInstantNotification() {
-        InstantTemplateDetails details = InstantLabelMapping.buildInstantNotificationDescription("rhel", "policies", "policy-triggered");
+        InstantTemplateDetails details = InstantLabelMapping.buildInstantNotificationDescription("rhel", "advisor", "new-recommendation");
 
         assertEquals("Instant notification", details.label());
         assertEquals("Immediate email for each triggered application event.", details.description());

@@ -143,8 +143,8 @@ public abstract class CamelProcessorTest {
 
         Action action = new Action.ActionBuilder()
                 .withBundle("rhel")
-                .withApplication("policies")
-                .withEventType("policy-triggered")
+                .withApplication("advisor")
+                .withEventType("test-event-type")
                 .withOrgId(DEFAULT_ORG_ID)
                 .withTimestamp(LocalDateTime.now(UTC))
                 .withSeverity(Severity.MODERATE.name())
@@ -164,16 +164,16 @@ public abstract class CamelProcessorTest {
         event.setOrgId(DEFAULT_ORG_ID);
         event.setEventWrapper(new EventWrapperAction(action));
         event.setBundleDisplayName("Red Hat Enterprise Linux");
-        event.setApplicationDisplayName("Policies");
+        event.setApplicationDisplayName("Advisor");
         Bundle bundle = new Bundle("rhel", "Red Hat Enterprise Linux");
         Application application = new Application();
         application.setBundle(bundle);
-        application.setName("policies");
+        application.setName("advisor");
         EventType eventType = new EventType();
         eventType.setApplication(application);
-        eventType.setName("policy-triggered");
+        eventType.setName("test-event-type");
         event.setEventType(eventType);
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setEventTypeDisplayName("Test event type");
 
         return event;
     }

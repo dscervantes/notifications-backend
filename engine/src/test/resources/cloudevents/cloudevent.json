@@ -1,17 +1,16 @@
 {
   "id":"2de1e968-b851-47b1-a8ac-1d355ad223bb",
-  "source":"urn:redhat:source:policies:insights:policies",
+  "source":"urn:redhat:source:console:insights:advisor",
   "subject":"urn:redhat:subject:rhel_system:2279dc9f-bbc6-4477-b7e3-6c68d39f0d07",
   "time":"2023-05-03T02:09:06.245424792Z",
-  "type":"com.redhat.console.insights.policies.policy-triggered",
+  "type":"com.redhat.console.insights.advisor.new-recommendation",
   "data":{
-    "policies":[
+    "recommendations":[
       {
-        "condition":"facts.arch = \"x86_64\"",
-        "description":"This is a sample policy for testing",
-        "id":"d41049d9-23e0-47ae-bd27-ecd1615fd200",
-        "name":"iqe-policies-2023-02-20-00:03:36:664678",
-        "url":"https://console.stage.redhat.com//insights/policies/policy/d41049d9-23e0-47ae-bd27-ecd1615fd200"
+        "rule_id":"sample_rule|SAMPLE_RULE_ERROR_KEY",
+        "rule_description":"This is a sample recommendation for testing",
+        "total_risk":2,
+        "rule_url":"https://console.stage.redhat.com/insights/advisor/recommendations/sample_rule%7CSAMPLE_RULE_ERROR_KEY"
       }
     ],
     "system":{
@@ -29,7 +28,7 @@
   },
   "$schema":"https://console.redhat.com/api/schemas/events/v1/events.json",
   "specversion":"1.0",
-  "dataschema":"https://console.redhat.com/api/schemas/apps/policies/v1/policy-triggered.json",
+  "dataschema":"https://console.redhat.com/api/schemas/apps/advisor/v1/new-recommendation.json",
   "redhatorgid":"11789772",
   "redhataccount":"6089719"
 }

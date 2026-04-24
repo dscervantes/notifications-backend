@@ -96,16 +96,16 @@ public class PagerDutyProcessorTest {
         Action pagerDutyActionMessage = buildPagerDutyAction();
         Event event = new Event();
         event.setEventWrapper(new EventWrapperAction(pagerDutyActionMessage));
-        event.setApplicationDisplayName("policies");
+        event.setApplicationDisplayName("advisor");
 
         Application application = new Application();
-        application.setName("policies");
+        application.setName("advisor");
         EventType eventType = new EventType();
         eventType.setApplication(application);
-        eventType.setName("policy-triggered");
+        eventType.setName("test-event-type");
         event.setEventType(eventType);
         event.setOrgId(DEFAULT_ORG_ID);
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setEventTypeDisplayName("Test event type");
         Endpoint ep = buildPagerDutyEndpoint();
 
         pagerDutyProcessor.process(event, List.of(ep));
@@ -166,7 +166,7 @@ public class PagerDutyProcessorTest {
         eventType.setName("new-system-registered");
         eventType.setDisplayName("New system registered");
         event.setEventType(eventType);
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setEventTypeDisplayName("New system registered");
 
         Endpoint ep = buildPagerDutyEndpoint();
 

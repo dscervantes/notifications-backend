@@ -334,8 +334,8 @@ public class EndpointProcessorTest {
     private static Action buildAction(String orgId) {
         Action action = new Action.ActionBuilder()
             .withBundle("rhel")
-            .withApplication("policies")
-            .withEventType("policy-triggered")
+            .withApplication("advisor")
+            .withEventType("test-event-type")
             .withOrgId(orgId)
             .withTimestamp(LocalDateTime.now(UTC))
             .withContext(new Context.ContextBuilder()

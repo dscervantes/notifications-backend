@@ -388,14 +388,14 @@ public abstract class ConnectorRoutesTest extends CamelQuarkusTestSupport {
     public static Map<String, Object> getDefaultEventDataMap() {
         String content = "{" +
             "   \"account_id\":null," +
-            "   \"application\":\"policies\"," +
+            "   \"application\":\"advisor\"," +
             "   \"bundle\":\"rhel\"," +
             "   \"context\":{" +
             "      \"inventory_id\":\"6ad30f3e-0497-4e74-99f1-b3f9a6120a6f\"," +
             "      \"display_name\":\"my-computer\"," +
             "      \"environment_url\":\"https://localhost\"" +
             "   }," +
-            "   \"event_type\":\"policy-triggered\"," +
+            "   \"event_type\":\"test-event-type\"," +
             "   \"events\":[" +
             "      {" +
             "         \"payload\":{" +

@@ -29,28 +29,27 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
 
     @Override
     protected String getApp() {
-        return "policies";
+        return "test-app";
     }
 
     @Override
     protected String getAppDisplayName() {
-        return "Policies";
+        return "Test App";
     }
 
     final String jsonCloudEvent = "{" +
         "  \"id\":\"2de1e968-b851-47b1-a8ac-1d355ad223bb\"," +
-        "  \"source\":\"urn:redhat:source:policies:insights:policies\"," +
+        "  \"source\":\"urn:redhat:source:console:insights:advisor\"," +
         "  \"subject\":\"urn:redhat:subject:rhel_system:2279dc9f-bbc6-4477-b7e3-6c68d39f0d07\"," +
         "  \"time\":\"2023-05-03T02:09:06.245424792Z\"," +
-        "  \"type\":\"com.redhat.console.insights.policies.policy-triggered\"," +
+        "  \"type\":\"com.redhat.console.insights.advisor.new-recommendation\"," +
         "  \"data\":{" +
-        "    \"policies\":[" +
+        "    \"recommendations\":[" +
         "      {" +
-        "        \"condition\":\"facts.arch = \\\"x86_64\\\"\"," +
-        "        \"description\":\"This is a sample policy for testing\"," +
-        "        \"id\":\"d41049d9-23e0-47ae-bd27-ecd1615fd200\"," +
-        "        \"name\":\"iqe-policies-2023-02-20-00:03:36:664678\"," +
-        "        \"url\":\"https://console.stage.redhat.com//insights/policies/policy/d41049d9-23e0-47ae-bd27-ecd1615fd200\"" +
+        "        \"rule_id\":\"sample_rule|SAMPLE_RULE_ERROR_KEY\"," +
+        "        \"rule_description\":\"This is a sample recommendation for testing\"," +
+        "        \"total_risk\":2," +
+        "        \"rule_url\":\"https://console.stage.redhat.com/insights/advisor/recommendations/sample_rule\"" +
         "      }" +
         "    ]," +
         "    \"system\":{" +
@@ -68,7 +67,7 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
         "  }," +
         "  \"$schema\":\"https://console.redhat.com/api/schemas/events/v1/events.json\"," +
         "  \"specversion\":\"1.0\"," +
-        "  \"dataschema\":\"https://console.redhat.com/api/schemas/apps/policies/v1/policy-triggered.json\"," +
+        "  \"dataschema\":\"https://console.redhat.com/api/schemas/apps/advisor/v1/new-recommendation.json\"," +
         "  \"redhatorgid\":\"11789772\"," +
         "  \"redhataccount\":\"6089719\"" +
         "}";
@@ -82,35 +81,35 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
     @Test
     public void testInstantEmailTitle() {
         Action action = TestHelpers.createPoliciesAction("", "my-bundle", "my-app", "FooMachine");
-        eventTypeDisplayName = "Policy Triggered";
+        eventTypeDisplayName = "Test Event Type";
 
         String result = generateEmailSubject(EVENT_TYPE_NAME, action);
-        assertEquals("Instant notification - Policy Triggered - Policies - Red Hat Enterprise Linux", result);
+        assertEquals("Instant notification - Test Event Type - Test App - Red Hat Enterprise Linux", result);
 
         // Test with Moderate severity level
         action.setSeverity(Severity.MODERATE.name());
         String moderateResult = generateEmailSubject(EVENT_TYPE_NAME, action);
-        assertEquals("[MODERATE] Instant notification - Policy Triggered - Policies - Red Hat Enterprise Linux", moderateResult);
+        assertEquals("[MODERATE] Instant notification - Test Event Type - Test App - Red Hat Enterprise Linux", moderateResult);
 
         // Test with None severity level
         action.setSeverity(Severity.NONE.name());
         String noneResult = generateEmailSubject(EVENT_TYPE_NAME, action);
-        assertEquals("Instant notification - Policy Triggered - Policies - Red Hat Enterprise Linux", noneResult);
+        assertEquals("Instant notification - Test Event Type - Test App - Red Hat Enterprise Linux", noneResult);
 
         // Test with Undefined severity level
         action.setSeverity(Severity.UNDEFINED.name());
         String undefinedResult = generateEmailSubject(EVENT_TYPE_NAME, action);
-        assertEquals("Instant notification - Policy Triggered - Policies - Red Hat Enterprise Linux", undefinedResult);
+        assertEquals("Instant notification - Test Event Type - Test App - Red Hat Enterprise Linux", undefinedResult);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testInstantEmailBody(boolean useBetaTemplate) {
         Action action = TestHelpers.createPoliciesAction("", "my-bundle", "my-app", "FooMachine");
-        eventTypeDisplayName = "Policy Triggered";
+        eventTypeDisplayName = "Test Event Type";
         String result = generateEmailBody(EVENT_TYPE_NAME, action, useBetaTemplate);
 
-        assertTrue(result.contains("Red Hat Enterprise Linux/Policies/Policy Triggered notification was triggered"), "Body should contain bundle/app/event-type");
+        assertTrue(result.contains("Red Hat Enterprise Linux/Test App/Test Event Type notification was triggered"), "Body should contain bundle/app/event-type");
         assertTrue(result.contains("You are receiving this email because the email template associated with this event type is not configured properly"));
     }
 
@@ -126,7 +125,7 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
         TemplateDefinition templateDefinition = new TemplateDefinition(IntegrationType.EMAIL_TITLE, getBundle(), getApp(), EVENT_TYPE_NAME);
         String result = generateEmail(templateDefinition, event, null, false);
 
-        assertEquals("Instant notification - Event without template - Policies - Red Hat Enterprise Linux", result.trim());
+        assertEquals("Instant notification - Event without template - Test App - Red Hat Enterprise Linux", result.trim());
     }
 
     @Test
@@ -140,7 +139,7 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
         TemplateDefinition templateDefinition = new TemplateDefinition(IntegrationType.EMAIL_BODY, getBundle(), getApp(), EVENT_TYPE_NAME);
         String result = generateEmail(templateDefinition, event, null, false);
 
-        assertTrue(result.contains("Red Hat Enterprise Linux/Policies/Event without template notification was triggered."), "Body should contain bundle/app/event-type");
+        assertTrue(result.contains("Red Hat Enterprise Linux/Test App/Event without template notification was triggered."), "Body should contain bundle/app/event-type");
         assertTrue(result.contains("You are receiving this email because the email template associated with this event type is not configured properly"));
     }
 }

@@ -99,15 +99,15 @@ public class WebhookTest {
         Action webhookActionMessage = buildWebhookAction();
         Event event = new Event();
         event.setEventWrapper(new EventWrapperAction(webhookActionMessage));
-        event.setApplicationDisplayName("policies");
+        event.setApplicationDisplayName("advisor");
         Application application = new Application();
-        application.setName("policies");
+        application.setName("advisor");
         EventType eventType = new EventType();
         eventType.setApplication(application);
-        eventType.setName("policy-triggered");
+        eventType.setName("test-event-type");
         event.setEventType(eventType);
         event.setOrgId(DEFAULT_ORG_ID);
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setEventTypeDisplayName("Test event type");
         Endpoint ep = buildWebhookEndpoint("https://my.webhook.connector.com");
 
         webhookTypeProcessor.process(event, List.of(ep));

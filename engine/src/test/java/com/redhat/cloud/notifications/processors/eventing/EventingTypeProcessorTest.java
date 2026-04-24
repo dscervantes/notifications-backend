@@ -273,14 +273,14 @@ class EventingTypeProcessorTest {
         event.setId(FIXTURE_EVENT_ORIGINAL_UUID);
         event.setEventWrapper(new EventWrapperAction(action));
         event.setOrgId(DEFAULT_ORG_ID);
-        event.setApplicationDisplayName("policies");
+        event.setApplicationDisplayName("advisor");
         Application application = new Application();
-        application.setName("policies");
+        application.setName("advisor");
         EventType eventType = new EventType();
         eventType.setApplication(application);
-        eventType.setName("policy-triggered");
+        eventType.setName("test-event-type");
         event.setEventType(eventType);
-        event.setEventTypeDisplayName("Policy triggered");
+        event.setEventTypeDisplayName("Test event type");
         return event;
     }
 
