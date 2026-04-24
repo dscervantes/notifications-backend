@@ -798,9 +798,9 @@ public class NotificationResourceTest extends DbIsolatedTest {
                 .statusCode(HttpStatus.SC_OK).contentType(JSON).extract().response().jsonPath().getList(".", Facet.class);
 
         assertTrue(applications.size() > 0);
-        Optional<Facet> policies = applications.stream().filter(facet -> facet.getName().equals("policies")).findFirst();
-        assertTrue(policies.isPresent());
-        assertEquals("Policies", policies.get().getDisplayName());
+        Optional<Facet> advisor = applications.stream().filter(facet -> facet.getName().equals("advisor")).findFirst();
+        assertTrue(advisor.isPresent());
+        assertEquals("Advisor", advisor.get().getDisplayName());
 
         // Without bundle returns all applications across bundles
         applications = given()
@@ -811,9 +811,9 @@ public class NotificationResourceTest extends DbIsolatedTest {
                 .statusCode(HttpStatus.SC_OK).contentType(JSON).extract().response().jsonPath().getList(".", Facet.class);
 
         assertTrue(applications.size() > 0);
-        policies = applications.stream().filter(facet -> facet.getName().equals("policies")).findFirst();
-        assertTrue(policies.isPresent());
-        assertEquals("Policies", policies.get().getDisplayName());
+        advisor = applications.stream().filter(facet -> facet.getName().equals("advisor")).findFirst();
+        assertTrue(advisor.isPresent());
+        assertEquals("Advisor", advisor.get().getDisplayName());
     }
 
     @Test
@@ -850,9 +850,9 @@ public class NotificationResourceTest extends DbIsolatedTest {
         assertEquals("Red Hat Enterprise Linux", rhel.get().getDisplayName());
         assertNotNull(rhel.get().getChildren());
 
-        Optional<Facet> policies = rhel.get().getChildren().stream().filter(facet -> facet.getName().equals("policies")).findFirst();
-        assertTrue(policies.isPresent());
-        assertEquals("Policies", policies.get().getDisplayName());
+        Optional<Facet> advisor = rhel.get().getChildren().stream().filter(facet -> facet.getName().equals("advisor")).findFirst();
+        assertTrue(advisor.isPresent());
+        assertEquals("Advisor", advisor.get().getDisplayName());
     }
 
     @ParameterizedTest

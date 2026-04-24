@@ -62,8 +62,8 @@ class ValidationResourceTest extends DbIsolatedTest {
 
         assertEquals(2, baetMap.size());
         assertEquals(1, baetMap.get("rhel").size());
-        assertEquals(1, baetMap.get("rhel").get("policies").size());
-        assertTrue(baetMap.get("rhel").get("policies").contains("policy-triggered"));
+        assertEquals(1, baetMap.get("rhel").get("advisor").size());
+        assertTrue(baetMap.get("rhel").get("advisor").contains("new-recommendation"));
 
         assertEquals(1, baetMap.get(bundleName).size());
         assertEquals(2, baetMap.get(bundleName).get(applicationName).size());

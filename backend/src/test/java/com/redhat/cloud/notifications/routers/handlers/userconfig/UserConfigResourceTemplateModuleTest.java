@@ -165,7 +165,7 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
         // we need to enable the default template feature.
         when(templateService.isDefaultEmailTemplateEnabled()).thenReturn(true);
         templateService.init();
-        updateEventTypeVisibility("policy-triggered", false);
+        updateEventTypeVisibility("new-recommendation", false);
 
         Map<TestRecordNameAndDisplayName, List<TestRecordNameAndDisplayName>> bundleAndApps = Map.of(
             new TestRecordNameAndDisplayName("bundle-name1", "zbundle"),        // declare a bundle
@@ -212,7 +212,7 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
         // delete created bundles, apps and event types
         bundleIdsToRemove.forEach(bundleIdToRemove -> deleteBundle(adminIdentity, bundleIdToRemove, true));
 
-        updateEventTypeVisibility("policy-triggered", true);
+        updateEventTypeVisibility("new-recommendation", true);
     }
 
 
@@ -238,7 +238,7 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
         String bundle = "rhel";
         String application = "advisor";
         String eventType = "new-recommendation";
-        UUID advisorEventTypeId = resourceHelpers.createEventType(bundle, application, eventType);
+        // advisor/new-recommendation is seeded by DbCleaner, no need to create
 
         updateEventTypeVisibility(eventType, false);
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = given()
@@ -250,8 +250,8 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
 
-        SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
-        assertNull(rhelPolicy, "RHEL policies found");
+        SettingsValueByEventTypeJsonForm.Application rhelAdvisor = rhelAppForm(settingsValuesByEventType, application);
+        assertNull(rhelAdvisor, "RHEL advisor found");
 
         updateEventTypeVisibility(eventType, true);
         settingsValuesByEventType = given()
@@ -263,13 +263,13 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
 
-        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
-        assertNotNull(rhelPolicy, "RHEL policies not found");
-        assertNull(rhelPolicy.eventTypes.get(0).fields.get(0).infoMessage);
+        rhelAdvisor = rhelAppForm(settingsValuesByEventType, application);
+        assertNotNull(rhelAdvisor, "RHEL advisor not found");
+        assertNull(rhelAdvisor.eventTypes.get(0).fields.get(0).infoMessage);
 
-        Application applicationPolicies = new Application();
-        applicationPolicies.setName("advisor");
-        when(applicationRepository.getApplicationsWithForcedEmail(any(), anyString())).thenReturn(List.of(applicationPolicies));
+        Application applicationAdvisor = new Application();
+        applicationAdvisor.setName("advisor");
+        when(applicationRepository.getApplicationsWithForcedEmail(any(), anyString())).thenReturn(List.of(applicationAdvisor));
 
         settingsValuesByEventType = given()
             .header(identityHeader)
@@ -278,8 +278,8 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
             .statusCode(200)
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
-        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
-        assertNotNull(rhelPolicy.eventTypes.get(0).fields.get(0).infoMessage);
+        rhelAdvisor = rhelAppForm(settingsValuesByEventType, application);
+        assertNotNull(rhelAdvisor.eventTypes.get(0).fields.get(0).infoMessage);
 
         when(backendConfig.isInstantEmailsEnabled()).thenReturn(false);
         SettingsValuesByEventType settingsValues = createSettingsValue(bundle, application, eventType, true, true, false, orgId);
@@ -290,8 +290,8 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
 
         when(backendConfig.isInstantEmailsEnabled()).thenReturn(false);
         SettingsValueByEventTypeJsonForm settingsValue = getPreferencesByEventType(identityHeader);
-        rhelPolicy = rhelAppForm(settingsValue, application);
-        boolean instantEmailSettingsReturned = extractNotificationValues(rhelPolicy.eventTypes, bundle, application, eventType)
+        rhelAdvisor = rhelAppForm(settingsValue, application);
+        boolean instantEmailSettingsReturned = extractNotificationValues(rhelAdvisor.eventTypes, bundle, application, eventType)
                 .keySet().stream().anyMatch(INSTANT::equals);
         assertFalse(instantEmailSettingsReturned, "Instant email subscription settings should not be returned when instant emails are disabled");
 
@@ -361,9 +361,9 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
             .statusCode(200)
             .contentType(JSON)
             .extract().body().as(SettingsValueByEventTypeJsonForm.class);
-        rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
-        assertNotNull(rhelPolicy, "RHEL policies not found");
-        Map<SubscriptionType, Boolean> initialValues = extractNotificationValues(rhelPolicy.eventTypes, "not-found-bundle-2", "not-found-app-2", eventType);
+        rhelAdvisor = rhelAppForm(settingsValuesByEventType, application);
+        assertNotNull(rhelAdvisor, "RHEL advisor not found");
+        Map<SubscriptionType, Boolean> initialValues = extractNotificationValues(rhelAdvisor.eventTypes, "not-found-bundle-2", "not-found-app-2", eventType);
         assertEquals(0, initialValues.size());
 
         // hide app
@@ -423,19 +423,16 @@ public class UserConfigResourceTemplateModuleTest extends DbIsolatedTest {
         // delete malware app
         UUID malwareAppId = applicationRepository.getApplication(bundle, MALWARE_APP_NAME).getId();
         applicationRepository.deleteApplication(malwareAppId);
-        // delete advisor event type and app
-        applicationRepository.deleteEventTypeById(advisorEventTypeId);
-        UUID advisorAppId = applicationRepository.getApplication(bundle, application).getId();
-        applicationRepository.deleteApplication(advisorAppId);
+        // advisor/new-recommendation cleanup handled by DbCleaner
     }
 
     private void updateAndCheckUserPreference(Header identityHeader, String bundle, String application, String eventType, List<SubscriptionType> subscriptionsToSet, List<SubscriptionType> expectedResult, String orgId) {
         SettingsValuesByEventType settingsValues = createSettingsValue(bundle, application, eventType, subscriptionsToSet.contains(DAILY), subscriptionsToSet.contains(INSTANT), subscriptionsToSet.contains(DRAWER), orgId);
         postPreferencesByEventType(identityHeader, settingsValues, 200);
         SettingsValueByEventTypeJsonForm settingsValuesByEventType = getPreferencesByEventType(identityHeader);
-        final SettingsValueByEventTypeJsonForm.Application rhelPolicy = rhelAppForm(settingsValuesByEventType, application);
-        assertNotNull(rhelPolicy, "RHEL policies not found");
-        Map<SubscriptionType, Boolean> initialValues = extractNotificationValues(rhelPolicy.eventTypes, bundle, application, eventType);
+        final SettingsValueByEventTypeJsonForm.Application rhelAdvisor = rhelAppForm(settingsValuesByEventType, application);
+        assertNotNull(rhelAdvisor, "RHEL advisor not found");
+        Map<SubscriptionType, Boolean> initialValues = extractNotificationValues(rhelAdvisor.eventTypes, bundle, application, eventType);
 
         assertEquals(expectedResult.contains(DAILY), initialValues.get(DAILY));
         assertEquals(expectedResult.contains(INSTANT), initialValues.get(INSTANT));

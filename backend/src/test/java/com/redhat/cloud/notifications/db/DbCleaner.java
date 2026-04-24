@@ -43,11 +43,11 @@ public class DbCleaner {
     );
     private static final String DEFAULT_BUNDLE_NAME = "rhel";
     private static final String DEFAULT_BUNDLE_DISPLAY_NAME = "Red Hat Enterprise Linux";
-    private static final String DEFAULT_APP_NAME = "policies";
-    private static final String DEFAULT_APP_DISPLAY_NAME = "Policies";
-    private static final String DEFAULT_EVENT_TYPE_NAME = "policy-triggered";
-    private static final String DEFAULT_EVENT_TYPE_DISPLAY_NAME = "Policy triggered";
-    private static final String DEFAULT_EVENT_TYPE_DESCRIPTION = "Matching policy";
+    private static final String DEFAULT_APP_NAME = "advisor";
+    private static final String DEFAULT_APP_DISPLAY_NAME = "Advisor";
+    private static final String DEFAULT_EVENT_TYPE_NAME = "new-recommendation";
+    private static final String DEFAULT_EVENT_TYPE_DISPLAY_NAME = "New recommendation";
+    private static final String DEFAULT_EVENT_TYPE_DESCRIPTION = "New advisor recommendation";
 
     @Inject
     EntityManager entityManager;
