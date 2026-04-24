@@ -23,12 +23,12 @@ class TestDefaultTemplate {
     TestHelpers testHelpers;
 
     private static final String INVENTORY_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/inventory/6ad30f3e-0497-4e74-99f1-b3f9a6120a6f?from=notifications&integration=slack";
-    private static final String APPLICATION_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/policies?from=notifications&integration=slack";
-    private static final String APP_BUNDLE_HEADER = "Policies - Red Hat Enterprise Linux";
+    private static final String APPLICATION_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/advisor?from=notifications&integration=slack";
+    private static final String APP_BUNDLE_HEADER = "Advisor - Red Hat Enterprise Linux";
 
     private static final String SLACK_EXPECTED_MAIN_MSG = "<" + INVENTORY_URL + "|%s> " + "triggered %d event%s";
-    private static final String SLACK_EXPECTED_OPEN_APP_MSG = "<" + APPLICATION_URL + "|Open Policies>";
-    private static final String SLACK_EXPECTED_EXPLORE_APP_MSG = "Explore %s and others in *<" + APPLICATION_URL + "|Policies>*.";
+    private static final String SLACK_EXPECTED_OPEN_APP_MSG = "<" + APPLICATION_URL + "|Open Advisor>";
+    private static final String SLACK_EXPECTED_EXPLORE_APP_MSG = "Explore %s and others in *<" + APPLICATION_URL + "|Advisor>*.";
 
     private static Stream<Arguments> betaAndSeverity() {
         return Stream.of(

@@ -23,11 +23,11 @@ class TestDefaultTemplate {
     TestHelpers testHelpers;
 
     private static final String INVENTORY_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/inventory/6ad30f3e-0497-4e74-99f1-b3f9a6120a6f";
-    private static final String APPLICATION_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/policies";
-    private static final String APP_BUNDLE_HEADER = "Policies - Red Hat Enterprise Linux";
+    private static final String APPLICATION_URL = TestHelpers.expectedTestEnvUrlValue + "/insights/advisor";
+    private static final String APP_BUNDLE_HEADER = "Advisor - Red Hat Enterprise Linux";
 
     private static final String TEAMS_EXPECTED_MAIN_MSG = "[%s](" + INVENTORY_URL + ") triggered %d event%s";
-    private static final String TEAMS_EXPECTED_EXPLORE_APP_MSG = "Explore %s and others in **Policies**.";
+    private static final String TEAMS_EXPECTED_EXPLORE_APP_MSG = "Explore %s and others in **Advisor**.";
 
     private static Stream<Arguments> betaAndSeverity() {
         return Stream.of(
@@ -78,9 +78,9 @@ class TestDefaultTemplate {
         assertTrue(result.contains(String.format(TEAMS_EXPECTED_EXPLORE_APP_MSG,
                 action.getEvents().size() != 1 ? "these" : "this")));
 
-        // Open Policies button
+        // Open Advisor button
         assertTrue(result.contains("\"type\": \"Action.OpenUrl\""));
         assertTrue(result.contains("\"url\": \"" + APPLICATION_URL + "\""));
-        assertTrue(result.contains("\"title\": \"Open Policies\""));
+        assertTrue(result.contains("\"title\": \"Open Advisor\""));
     }
 }

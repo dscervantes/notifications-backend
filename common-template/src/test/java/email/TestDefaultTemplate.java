@@ -44,12 +44,14 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
         "  \"time\":\"2023-05-03T02:09:06.245424792Z\"," +
         "  \"type\":\"com.redhat.console.insights.advisor.new-recommendation\"," +
         "  \"data\":{" +
-        "    \"recommendations\":[" +
+        "    \"advisor_recommendations\":[" +
         "      {" +
         "        \"rule_id\":\"sample_rule|SAMPLE_RULE_ERROR_KEY\"," +
         "        \"rule_description\":\"This is a sample recommendation for testing\"," +
-        "        \"total_risk\":2," +
-        "        \"rule_url\":\"https://console.stage.redhat.com/insights/advisor/recommendations/sample_rule\"" +
+        "        \"total_risk\":\"2\"," +
+        "        \"publish_date\":\"2023-05-03T02:09:06.245424792Z\"," +
+        "        \"reboot_required\":false," +
+        "        \"rule_url\":\"https://console.stage.redhat.com/insights/advisor/recommendations/sample_rule%7CSAMPLE_RULE_ERROR_KEY\"" +
         "      }" +
         "    ]," +
         "    \"system\":{" +
@@ -67,7 +69,7 @@ public class TestDefaultTemplate extends EmailTemplatesRendererHelper {
         "  }," +
         "  \"$schema\":\"https://console.redhat.com/api/schemas/events/v1/events.json\"," +
         "  \"specversion\":\"1.0\"," +
-        "  \"dataschema\":\"https://console.redhat.com/api/schemas/apps/advisor/v1/new-recommendation.json\"," +
+        "  \"dataschema\":\"https://console.redhat.com/api/schemas/apps/advisor/v1/advisor-recommendations.json\"," +
         "  \"redhatorgid\":\"11789772\"," +
         "  \"redhataccount\":\"6089719\"" +
         "}";
