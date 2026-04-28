@@ -3,11 +3,8 @@ package com.redhat.cloud.notifications.events.deduplication;
 import com.redhat.cloud.notifications.config.EngineConfig;
 import com.redhat.cloud.notifications.events.ValkeyService;
 import com.redhat.cloud.notifications.models.Event;
-import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -19,9 +16,6 @@ public class EventDeduplicator {
     private static final DefaultEventDeduplicationConfig DEFAULT_DEDUPLICATION_CONFIG = new DefaultEventDeduplicationConfig();
     private static final String SUBSCRIPTION_SERVICES_BUNDLE = "subscription-services";
     private static final String SUBSCRIPTIONS_APP = "subscriptions";
-
-    @Inject
-    EntityManager entityManager;
 
     @Inject
     SubscriptionsDeduplicationConfig subscriptionsDeduplicationConfig;
@@ -43,7 +37,6 @@ public class EventDeduplicator {
         };
     }
 
-    @Transactional
     public boolean isNew(Event event) {
 
         EventDeduplicationConfig eventDeduplicationConfig = getEventDeduplicationConfig(event);
@@ -54,37 +47,14 @@ public class EventDeduplicator {
             return true;
         }
 
+        // Events are always considered new if Valkey is not available.
+        if (!engineConfig.isInMemoryDbEnabled() || !engineConfig.isValkeyEventDeduplicatorEnabled()) {
+            return true;
+        }
+
         UUID eventTypeId = event.getEventType().getId();
         LocalDateTime deleteAfter = eventDeduplicationConfig.getDeleteAfter(event);
 
-        if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
-            // RHCLOUD-35790: remove once Valkey deduplication is validated
-            boolean isNewEvent = postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
-            boolean valkeyIsNewEvent = valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(),
-                    deleteAfter);
-            if (valkeyIsNewEvent != isNewEvent) {
-                Log.warnf(
-                        "Valkey event deduplication (isNewEvent=%s) does not align with Postgres result (isNewEvent=%s) [event_type_id=%s, deduplication_key=%s]",
-                        valkeyIsNewEvent, isNewEvent, eventTypeId, deduplicationKey.get());
-            }
-
-            return isNewEvent;
-
-        } else {
-            return postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
-        }
-    }
-
-    private boolean postgresEventDeduplication(UUID eventTypeId, Optional<String> deduplicationKey, LocalDateTime deleteAfter) {
-        String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +
-                "VALUES (:eventTypeId, :deduplicationKey, :deleteAfter) " +
-                "ON CONFLICT (event_type_id, deduplication_key) DO NOTHING";
-
-        int rowCount = entityManager.createNativeQuery(sql)
-                .setParameter("eventTypeId", eventTypeId)
-                .setParameter("deduplicationKey", deduplicationKey.get())
-                .setParameter("deleteAfter", deleteAfter)
-                .executeUpdate();
-        return rowCount > 0;
+        return valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(), deleteAfter);
     }
 }

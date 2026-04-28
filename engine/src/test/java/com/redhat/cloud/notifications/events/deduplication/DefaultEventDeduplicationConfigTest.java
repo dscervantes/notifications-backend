@@ -15,18 +15,17 @@ class DefaultEventDeduplicationConfigTest {
     private final DefaultEventDeduplicationConfig deduplicationConfig = new DefaultEventDeduplicationConfig();
 
     @Test
-    void testGetDeduplicationKeyWithNullEventId() {
+    void testGetDeduplicationKeyWithNoExternalId() {
 
         Event event = new Event();
-        // Event ID is null by default.
 
         Optional<String> deduplicationKey = deduplicationConfig.getDeduplicationKey(event);
 
-        assertTrue(deduplicationKey.isEmpty(), "The default deduplication key should be empty when event ID is null");
+        assertTrue(deduplicationKey.isEmpty(), "The deduplication key should be empty when externalId is null");
     }
 
     @Test
-    void testGetDeduplicationKeyWithNonNullEventId() {
+    void testGetDeduplicationKeyWithEventIdOnlyReturnsEmpty() {
 
         UUID eventId = UUID.randomUUID();
         Event event = new Event();
@@ -34,22 +33,34 @@ class DefaultEventDeduplicationConfigTest {
 
         Optional<String> deduplicationKey = deduplicationConfig.getDeduplicationKey(event);
 
+        assertTrue(deduplicationKey.isEmpty(), "The deduplication key should be empty when only event ID is set (no externalId)");
+    }
+
+    @Test
+    void testGetDeduplicationKeyWithExternalId() {
+
+        UUID externalId = UUID.randomUUID();
+        Event event = new Event();
+        event.setExternalId(externalId);
+
+        Optional<String> deduplicationKey = deduplicationConfig.getDeduplicationKey(event);
+
         assertTrue(deduplicationKey.isPresent());
-        assertEquals(eventId.toString(), deduplicationKey.get());
+        assertEquals(externalId.toString(), deduplicationKey.get());
     }
 
     @Test
     void testGetDeduplicationKeyWithDifferentEvents() {
 
-        UUID eventId1 = UUID.randomUUID();
+        UUID externalId1 = UUID.randomUUID();
         Event event1 = new Event();
-        event1.setId(eventId1);
+        event1.setExternalId(externalId1);
 
         Optional<String> deduplicationKey1 = deduplicationConfig.getDeduplicationKey(event1);
 
-        UUID eventId2 = UUID.randomUUID();
+        UUID externalId2 = UUID.randomUUID();
         Event event2 = new Event();
-        event2.setId(eventId2);
+        event2.setExternalId(externalId2);
 
         Optional<String> deduplicationKey2 = deduplicationConfig.getDeduplicationKey(event2);
 
@@ -61,20 +72,20 @@ class DefaultEventDeduplicationConfigTest {
     @Test
     void testGetDeduplicationKeyWithSameData() {
 
-        UUID eventId = UUID.randomUUID();
+        UUID externalId = UUID.randomUUID();
 
         Event event1 = new Event();
-        event1.setId(eventId);
+        event1.setExternalId(externalId);
 
         Optional<String> deduplicationKey1 = deduplicationConfig.getDeduplicationKey(event1);
 
         Event event2 = new Event();
-        event2.setId(eventId);
+        event2.setExternalId(externalId);
 
         Optional<String> deduplicationKey2 = deduplicationConfig.getDeduplicationKey(event2);
 
         assertTrue(deduplicationKey1.isPresent());
         assertTrue(deduplicationKey2.isPresent());
-        assertEquals(deduplicationKey1.get(), deduplicationKey2.get(), "Events with the same data should have the same deduplication key");
+        assertEquals(deduplicationKey1.get(), deduplicationKey2.get(), "Events with the same externalId should have the same deduplication key");
     }
 }

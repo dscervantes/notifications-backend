@@ -3,6 +3,7 @@ package com.redhat.cloud.notifications.events.deduplication;
 import com.redhat.cloud.notifications.TestLifecycleManager;
 import com.redhat.cloud.notifications.config.EngineConfig;
 import com.redhat.cloud.notifications.events.EventWrapperAction;
+import com.redhat.cloud.notifications.events.ValkeyService;
 import com.redhat.cloud.notifications.models.Application;
 import com.redhat.cloud.notifications.models.Bundle;
 import com.redhat.cloud.notifications.models.Event;
@@ -15,9 +16,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -42,16 +41,11 @@ class EventDeduplicatorTest {
     @Inject
     EntityManager entityManager;
 
+    @Inject
+    ValkeyService valkeyService;
+
     @InjectSpy
     EngineConfig config;
-
-    @BeforeEach
-    @Transactional
-    void beforeEach() {
-        entityManager
-            .createNativeQuery("DELETE FROM event_deduplication")
-            .executeUpdate();
-    }
 
     @AfterEach
     @Transactional
@@ -63,44 +57,70 @@ class EventDeduplicatorTest {
                 .executeUpdate();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testIsNewWithDefaultDeduplication(final boolean valkeyDedupEnabled) {
-        when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(valkeyDedupEnabled);
-        when(config.isInMemoryDbEnabled()).thenReturn(valkeyDedupEnabled);
+    @Test
+    void testIsNewWithDefaultDeduplication() {
+        when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(true);
+        when(config.isInMemoryDbEnabled()).thenReturn(true);
 
         EventType eventType = createEventType(TEST_BUNDLE_NAME, "test-app");
         LocalDateTime dateTime = LocalDateTime.now(UTC_ZONE);
 
-        UUID eventId1 = UUID.randomUUID();
+        UUID externalId1 = UUID.randomUUID();
         Event event1 = new Event();
-        event1.setId(eventId1);
+        event1.setExternalId(externalId1);
         event1.setEventType(eventType);
         event1.setEventWrapper(new EventWrapperAction(ActionBuilder.build(dateTime)));
 
         assertTrue(eventDeduplicator.isNew(event1), "New event should return true");
 
-        UUID eventId2 = UUID.randomUUID();
+        UUID externalId2 = UUID.randomUUID();
         Event event2 = new Event();
-        event2.setId(eventId2);
+        event2.setExternalId(externalId2);
         event2.setEventType(eventType);
         event2.setEventWrapper(new EventWrapperAction(ActionBuilder.build(dateTime)));
 
         assertTrue(eventDeduplicator.isNew(event2), "New event should return true");
 
         Event event3 = new Event();
-        event3.setId(eventId2);
+        event3.setExternalId(externalId2);
         event3.setEventType(eventType);
         event3.setEventWrapper(new EventWrapperAction(ActionBuilder.build(dateTime)));
 
         assertFalse(eventDeduplicator.isNew(event3), "Duplicate event should return false");
+
+        // Clean up Valkey entries.
+        valkeyService.removeEventFromDeduplication(eventType.getId(), externalId1.toString());
+        valkeyService.removeEventFromDeduplication(eventType.getId(), externalId2.toString());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testIsNewWithSubscriptionsDeduplication(final boolean valkeyDedupEnabled) {
-        when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(valkeyDedupEnabled);
-        when(config.isInMemoryDbEnabled()).thenReturn(valkeyDedupEnabled);
+    @Test
+    void testIsNewWithoutValkeyReturnsAlwaysNew() {
+        when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(false);
+        when(config.isInMemoryDbEnabled()).thenReturn(false);
+
+        EventType eventType = createEventType(TEST_BUNDLE_NAME, "test-app");
+        LocalDateTime dateTime = LocalDateTime.now(UTC_ZONE);
+
+        UUID externalId = UUID.randomUUID();
+        Event event1 = new Event();
+        event1.setExternalId(externalId);
+        event1.setEventType(eventType);
+        event1.setEventWrapper(new EventWrapperAction(ActionBuilder.build(dateTime)));
+
+        assertTrue(eventDeduplicator.isNew(event1), "Event should be new when Valkey is disabled");
+
+        Event event2 = new Event();
+        event2.setExternalId(externalId);
+        event2.setEventType(eventType);
+        event2.setEventWrapper(new EventWrapperAction(ActionBuilder.build(dateTime)));
+
+        assertTrue(eventDeduplicator.isNew(event2), "Duplicate event should also be new when Valkey is disabled");
+    }
+
+    @Test
+    void testIsNewWithSubscriptionsDeduplication() {
+        when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(true);
+        when(config.isInMemoryDbEnabled()).thenReturn(true);
 
         EventType eventType = createEventType(SUBSCRIPTION_SERVICES_BUNDLE_NAME, "subscriptions");
         LocalDateTime baseDateTime =

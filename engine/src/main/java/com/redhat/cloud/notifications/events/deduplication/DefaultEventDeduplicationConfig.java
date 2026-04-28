@@ -19,10 +19,6 @@ public class DefaultEventDeduplicationConfig implements EventDeduplicationConfig
         if (event.getExternalId() != null) {
             return Optional.of(event.getExternalId().toString());
         }
-        // TODO remove check on id with RHCLOUD-44531
-        if (event.getId() != null) {
-            return Optional.of(event.getId().toString());
-        }
         return Optional.empty();
     }
 }

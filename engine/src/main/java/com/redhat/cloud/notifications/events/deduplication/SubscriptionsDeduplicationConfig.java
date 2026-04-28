@@ -34,7 +34,7 @@ public class SubscriptionsDeduplicationConfig implements EventDeduplicationConfi
 
     @Override
     public LocalDateTime getDeleteAfter(Event event) {
-        // The event_deduplication entries will be purged from the DB on the first day of the next month, when the first purge cronjob runs after midnight UTC.
+        // Valkey deduplication entries will expire via TTL on the first day of the next month.
         return event.getTimestamp().plusMonths(1).withDayOfMonth(1).truncatedTo(DAYS);
     }
 
