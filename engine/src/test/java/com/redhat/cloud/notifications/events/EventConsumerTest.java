@@ -327,8 +327,17 @@ public class EventConsumerTest {
         micrometerAssertionHelper.awaitAndAssertTimerIncrement(CONSUMED_TIMER_NAME, 2);
         assertEquals(2L, getTimerCount(action.getBundle(), action.getApplication(), action.getEventType()));
         micrometerAssertionHelper.assertCounterIncrement(MESSAGE_ID_VALID_COUNTER_NAME, 2);
-        micrometerAssertionHelper.assertCounterIncrementWithTags(DUPLICATE_EVENT_COUNTER_NAME, 1,
-            TAG_KEY_BUNDLE, BUNDLE, TAG_KEY_APPLICATION, APP, TAG_KEY_EVENT_TYPE, EVENT_TYPE);
+
+        if (valkeyDedupEnabled) {
+            // With Valkey dedup enabled, the second event is detected as a duplicate.
+            micrometerAssertionHelper.assertCounterIncrementWithTags(DUPLICATE_EVENT_COUNTER_NAME, 1,
+                TAG_KEY_BUNDLE, BUNDLE, TAG_KEY_APPLICATION, APP, TAG_KEY_EVENT_TYPE, EVENT_TYPE);
+        } else {
+            // Without Valkey, there is no dedup mechanism — both events are processed.
+            micrometerAssertionHelper.assertCounterIncrementWithTags(DUPLICATE_EVENT_COUNTER_NAME, 0,
+                TAG_KEY_BUNDLE, BUNDLE, TAG_KEY_APPLICATION, APP, TAG_KEY_EVENT_TYPE, EVENT_TYPE);
+        }
+
         assertNoCounterIncrement(
                 REJECTED_COUNTER_NAME,
                 PROCESSING_ERROR_COUNTER_NAME,
@@ -338,7 +347,18 @@ public class EventConsumerTest {
         );
         micrometerAssertionHelper.assertCounterIncrementWithTags(PROCESSING_BLACKLISTED_COUNTER_NAME, 0,
             TAG_KEY_BUNDLE, BUNDLE, TAG_KEY_APPLICATION, APP, TAG_KEY_EVENT_TYPE, EVENT_TYPE, TAG_KEY_EVENT_TYPE_FQN, EVENT_TYPE_FQN);
-        verifyExactlyOneProcessing(eventType, payload, action, false);
+
+        int expectedProcessCount = valkeyDedupEnabled ? 1 : 2;
+        ArgumentCaptor<Event> argumentCaptor = ArgumentCaptor.forClass(Event.class);
+        verify(endpointProcessor, times(expectedProcessCount)).process(argumentCaptor.capture());
+        // Verify the first processed event has expected fields.
+        Event firstEvent = argumentCaptor.getAllValues().get(0);
+        assertNull(firstEvent.getAccountId());
+        assertEquals(DEFAULT_ORG_ID, firstEvent.getOrgId());
+        assertEquals(eventType, firstEvent.getEventType());
+        assertEquals(payload, firstEvent.getPayload());
+        assertEquals(action, firstEvent.getEventWrapper().getEvent());
+
         verify(eventDeduplicator, times(2)).isNew(any(Event.class));
 
     }
